@@ -27,21 +27,13 @@ library OracleSigVerifier {
         BN254.G2Point memory apkG2
     ) internal view returns (bool ok) {
         // 1. 确认聚合公钥快照一致性，防止用户伪造 apkG2 配合旧签名
-        require(
-            registry.isApkHashValidAt(apkHash, refBlock),
-            "OracleSigVerifier: apk snapshot mismatch"
-        );
+        require(registry.isApkHashValidAt(apkHash, refBlock), "OracleSigVerifier: apk snapshot mismatch");
         // 取历史快照的 G1 公钥
         BN254.G1Point memory apkG1 = registry.apkHashAt(refBlock);
 
         // 校验 apkG1 与 apkG2 的一致性
         // e(apkG1, g2) == e(g1, apkG2)
-        bool keyMatch = BN254.pairing(
-            apkG1,
-            BN254.generatorG2(),
-            BN254.generatorG1(),
-            apkG2
-        );
+        bool keyMatch = BN254.pairing(apkG1, BN254.generatorG2(), BN254.generatorG1(), apkG2);
         require(keyMatch, "OracleSigVerifier: apkG1/apkG2 mismatch");
 
         // 2.  pairing 验签： e(σ, g2) == e(P, apkG2)

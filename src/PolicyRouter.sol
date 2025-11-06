@@ -46,10 +46,7 @@ contract PolicyRouter is Initializable, OwnableUpgradeable {
     /// @dev 也可设置为 address(0) 以跳过 zk proof 验证
     /// @param description 验证器描述，如 "age_over_18"
     /// @param _verifier   验证器合约地址
-    function setZkVerifier(
-        string memory description,
-        address _verifier
-    ) external onlyOwner {
+    function setZkVerifier(string memory description, address _verifier) external onlyOwner {
         zkVerifiers[description] = IVerifier(_verifier);
     }
 
@@ -57,20 +54,14 @@ contract PolicyRouter is Initializable, OwnableUpgradeable {
     /// @dev 也起到注册Oracle kycPod的作用
     /// @param policyId 业务策略 ID
     /// @param kycPod Oracle kycPod 合约地址
-    function setPolicykycPod(
-        uint256 policyId,
-        address kycPod
-    ) external onlyOwner {
+    function setPolicykycPod(uint256 policyId, address kycPod) external onlyOwner {
         policyToKycPod[policyId] = IOracleKYCPod(kycPod);
     }
 
     /// @dev 更新某个 policy 的最新版本号
     /// @param policyId 业务策略 ID
     /// @param version  最新版本号
-    function setLatestPolicyVersion(
-        uint256 policyId,
-        uint256 version
-    ) external onlyOwner {
+    function setLatestPolicyVersion(uint256 policyId, uint256 version) external onlyOwner {
         latestPolicyVersion[policyId] = version;
     }
 
@@ -89,38 +80,20 @@ contract PolicyRouter is Initializable, OwnableUpgradeable {
         string memory zkVerifierDescription
     ) external returns (bool) {
         // 1. 根据 policy_id 找到对应的 Oracle kycPod
-        require(
-            version == latestPolicyVersion[policyId],
-            "PolicyRouter: policy version mismatch"
-        ); // 要求匹配Oracle最新版本
+        require(version == latestPolicyVersion[policyId], "PolicyRouter: policy version mismatch"); // 要求匹配Oracle最新版本
         IOracleKYCPod kycPod = policyToKycPod[policyId];
         require(address(kycPod) != address(0), "PolicyRouter: kycPod not set");
 
         // 2. 先做 Oracle kyc 验证
-        require(
-            kycPod.isVerified(msg.sender),
-            "PolicyRouter: user not verified"
-        );
+        require(kycPod.isVerified(msg.sender), "PolicyRouter: user not verified");
         bytes32 commitment = kycPod.getCommitment(msg.sender);
 
         // 3.（预留）验证 zk proof（此处先返回 true 或空逻辑）
         IVerifier zkVerifier = zkVerifiers[zkVerifierDescription];
-        require(
-            address(zkVerifier) != address(0),
-            "PolicyRouter: zk verifier not set"
-        );
-        require(
-            zkVerifier.verifyProof(proof, pubInputs),
-            "PolicyRouter: zk proof invalid"
-        );
+        require(address(zkVerifier) != address(0), "PolicyRouter: zk verifier not set");
+        require(zkVerifier.verifyProof(proof, pubInputs), "PolicyRouter: zk proof invalid");
 
-        emit Verified(
-            policyId,
-            version,
-            zkVerifierDescription,
-            address(zkVerifier),
-            msg.sender
-        );
+        emit Verified(policyId, version, zkVerifierDescription, address(zkVerifier), msg.sender);
         return true;
     }
 

@@ -14,21 +14,14 @@ import "./PodManager.sol";
  * @dev 注意：不再使用 did 作为索引，而是用 user 地址登记。
  */
 contract OracleKYCManager is Initializable, OwnableUpgradeable, PodManager {
-    event KYCVerified(
-        address indexed user,
-        bytes32 commitment,
-        bytes32 signPodHash,
-        uint256 totalStake
-    );
+    event KYCVerified(address indexed user, bytes32 commitment, bytes32 signPodHash, uint256 totalStake);
 
     IOracleKYCPod public oraclePod;
 
-    function initialize(
-        address _initialOwner,
-        address _blsApkRegistry,
-        address _oraclePod,
-        address _aggregatorManager
-    ) external initializer {
+    function initialize(address _initialOwner, address _blsApkRegistry, address _oraclePod, address _aggregatorManager)
+        external
+        initializer
+    {
         __Ownable_init(_initialOwner);
         __PodManager_init(_blsApkRegistry, _aggregatorManager);
         oraclePod = IOracleKYCPod(_oraclePod);
@@ -50,17 +43,10 @@ contract OracleKYCManager is Initializable, OwnableUpgradeable, PodManager {
         IBLSApkRegistry.NonSignerAndSignature memory oracleSig
     ) external onlyAggregatorManager {
         // 验证 Oracle 聚合签名
-        (uint256 totalStake, bytes32 signPodHash) = blsApkRegistry
-            .checkSignatures(msgHash, refBlock, oracleSig);
+        (uint256 totalStake, bytes32 signPodHash) = blsApkRegistry.checkSignatures(msgHash, refBlock, oracleSig);
 
         // 状态登记
-        oraclePod.recordVerification(
-            user,
-            commitment,
-            msgHash,
-            signPodHash,
-            refBlock
-        );
+        oraclePod.recordVerification(user, commitment, msgHash, signPodHash, refBlock);
 
         emit KYCVerified(user, commitment, signPodHash, totalStake);
     }

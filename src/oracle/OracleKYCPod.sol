@@ -14,12 +14,7 @@ import "../interfaces/IOracleKYCPod.sol";
 contract OracleKYCPod is Initializable, OwnableUpgradeable, IOracleKYCPod {
     mapping(address => Record) public kycRecords; // user => Record
 
-    event KYCRecorded(
-        address indexed user,
-        bytes32 commitment,
-        bytes32 signRecordHash,
-        uint32 refBlock
-    );
+    event KYCRecorded(address indexed user, bytes32 commitment, bytes32 signRecordHash, uint32 refBlock);
 
     function initialize(address _initialOwner) external initializer {
         __Ownable_init(_initialOwner);
@@ -30,11 +25,11 @@ contract OracleKYCPod is Initializable, OwnableUpgradeable, IOracleKYCPod {
      * @dev 仅OracleKYCManager(Owner)可调用
      *
      * Commitment = Poseidon(m, r, did, policy_id, version)
-        *   m：用户私有的 KYC 明文（如 age、nationality）
-            r：随机盐（或 derived from did）
-            did：隐私身份标识
-            policy_id / version：策略上下文
-        */
+     *   m：用户私有的 KYC 明文（如 age、nationality）
+     *         r：随机盐（或 derived from did）
+     *         did：隐私身份标识
+     *         policy_id / version：策略上下文
+     */
     function recordVerification(
         address user,
         bytes32 commitment,
