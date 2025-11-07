@@ -14,45 +14,47 @@ import "./PodManager.sol";
  * @dev 注意：不再使用 did 作为索引，而是用 user 地址登记。
  */
 contract OracleKYCManager is Initializable, OwnableUpgradeable, PodManager {
-    event KYCVerified(address indexed user, bytes32 commitment, bytes32 signPodHash, uint256 totalStake);
+    event KYCVerified(
+        address indexed user,
+        uint256 commitment,
+        bytes32 signPodHash,
+        uint256 totalStake
+    );
 
-    IOracleKYCPod public oraclePod;
-
-    function initialize(address _initialOwner, address _blsApkRegistry, address _oraclePod, address _aggregatorManager)
-        external
-        initializer
-    {
+    function initialize(
+        address _initialOwner,
+        address _blsApkRegistry,
+        address _aggregatorManager
+    ) external initializer {
         __Ownable_init(_initialOwner);
         __PodManager_init(_blsApkRegistry, _aggregatorManager);
-        oraclePod = IOracleKYCPod(_oraclePod);
     }
 
     /**
      * @notice Oracle节点提交KYC验证结果并登记承诺
+     * @param oraclePod Oracle KYC Pod合约地址
      * @param user 用户钱包地址
-     * @param commitment C = Poseidon(m, r, did, policy_id, version)
+     * @param commitment C = Poseidon(m, did, policy_id, version)
      * @param msgHash Oracle签名消息哈希
      * @param refBlock 验签基于的区块号
      * @param oracleSig 聚合签名结构体
      */
     function verifyAndPodKYC(
+        IOracleKYCPod oraclePod,
         address user,
-        bytes32 commitment,
+        uint256 commitment,
         bytes32 msgHash,
         uint32 refBlock,
         IBLSApkRegistry.NonSignerAndSignature memory oracleSig
     ) external onlyAggregatorManager {
         // 验证 Oracle 聚合签名
-        (uint256 totalStake, bytes32 signPodHash) = blsApkRegistry.checkSignatures(msgHash, refBlock, oracleSig);
+        (uint256 totalStake, bytes32 signPodHash) = blsApkRegistry
+            .checkSignatures(msgHash, refBlock, oracleSig);
 
         // 状态登记
-        oraclePod.recordVerification(user, commitment, msgHash, signPodHash, refBlock);
+        oraclePod.recordVerification(user, commitment);
 
         emit KYCVerified(user, commitment, signPodHash, totalStake);
-    }
-
-    function setOraclePod(address _oraclePod) external onlyOwner {
-        oraclePod = IOracleKYCPod(_oraclePod);
     }
 
     uint256[50] private __gap;

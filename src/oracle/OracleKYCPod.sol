@@ -14,7 +14,7 @@ import "../interfaces/IOracleKYCPod.sol";
 contract OracleKYCPod is Initializable, OwnableUpgradeable, IOracleKYCPod {
     mapping(address => Record) public kycRecords; // user => Record
 
-    event KYCRecorded(address indexed user, bytes32 commitment, bytes32 signRecordHash, uint32 refBlock);
+    event KYCRecorded(address indexed user, uint256 commitment);
 
     function initialize(address _initialOwner) external initializer {
         __Ownable_init(_initialOwner);
@@ -32,19 +32,14 @@ contract OracleKYCPod is Initializable, OwnableUpgradeable, IOracleKYCPod {
      */
     function recordVerification(
         address user,
-        bytes32 commitment,
-        bytes32 msgHash,
-        bytes32 signRecordHash,
-        uint32 refBlock
+        uint256 commitment
     ) external onlyOwner {
         Record storage rec = kycRecords[user];
         rec.commitment = commitment;
-        rec.msgHash = msgHash;
-        rec.signRecordHash = signRecordHash;
-        rec.refBlock = refBlock;
+
         rec.verified = true;
 
-        emit KYCRecorded(user, commitment, signRecordHash, refBlock);
+        emit KYCRecorded(user, commitment);
     }
 
     function isVerified(address user) external view returns (bool) {
@@ -55,7 +50,7 @@ contract OracleKYCPod is Initializable, OwnableUpgradeable, IOracleKYCPod {
         return kycRecords[user];
     }
 
-    function getCommitment(address user) external view returns (bytes32) {
+    function getCommitment(address user) external view returns (uint256) {
         return kycRecords[user].commitment;
     }
 
