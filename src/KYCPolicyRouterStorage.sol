@@ -17,5 +17,8 @@ contract KYCPolicyRouterStorage {
     /// @dev zk proof verifier address (optional, to be integrated later)
     mapping(string => IVerifier) public zkVerifiers;
 
+    /// @dev zk proof verifier threshold
+    mapping(string => uint256) public zkThresholds;
+
     uint256[50] private __gap;
 }

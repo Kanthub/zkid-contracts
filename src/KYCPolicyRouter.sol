@@ -34,6 +34,13 @@ contract KYCPolicyRouter is Initializable, OwnableUpgradeable, KYCPolicyRouterSt
         zkVerifiers[description] = IVerifier(_verifier);
     }
 
+    /// @dev Set zkVerifier threshold
+    /// @param description Verifier description, e.g. "age_over_18"
+    /// @param threshold   Threshold value for the verifier
+    function setZkThreshold(string memory description, uint256 threshold) external onlyOwner {
+        zkThresholds[description] = threshold;
+    }
+
     /// @dev Bind an Oracle KYC Pod to a specific policy
     /// @dev Also acts as registration for the Oracle KYC Pod
     /// @param policyId Business policy ID
@@ -55,8 +62,7 @@ contract KYCPolicyRouter is Initializable, OwnableUpgradeable, KYCPolicyRouterSt
     /// @param policyId    Business policy ID
     /// @param version     Policy version
     /// @param proof       zk proof (placeholder)
-    /// @param pubInputs   Public inputs of the zk proof (placeholder)
-    function verifyAll(uint256 policyId, uint256 version, bytes calldata proof, uint256[] calldata pubInputs, string memory zkVerifierDescription) external returns (bool) {
+    function verifyAll(uint256 policyId, uint256 version, uint256[8] calldata proof, string memory zkVerifierDescription) external returns (bool) {
         // 1. Find the corresponding Oracle KYC Pod by policyId
         require(version == latestPolicyVersion[policyId], "PolicyRouter: policy version mismatch"); // Must match the Oracle's latest version
         IOracleKYCPod kycPod = policyToKycPod[policyId];
@@ -66,12 +72,23 @@ contract KYCPolicyRouter is Initializable, OwnableUpgradeable, KYCPolicyRouterSt
         require(kycPod.isVerified(msg.sender), "PolicyRouter: user not verified");
         uint256 commitment = kycPod.getCommitment(msg.sender);
 
-        // 3. (Reserved) Verify zk proof (currently requires zk proof to pass)
+        // 3. Verify zk proof (requires zk proof to pass)
         IVerifier zkVerifier = zkVerifiers[zkVerifierDescription];
+        uint256 threshold = zkThresholds[zkVerifierDescription];
         require(address(zkVerifier) != address(0), "PolicyRouter: zk verifier not set");
-        require(zkVerifier.verifyProof(proof, pubInputs), "PolicyRouter: zk proof invalid");
 
+        _verify(zkVerifier, proof, policyId, version, commitment, threshold);
         emit Verified(policyId, version, zkVerifierDescription, address(zkVerifier), msg.sender);
         return true;
+    }
+
+    function _verify(IVerifier zkVerifier, uint256[8] calldata proof, uint256 policyId, uint256 version, uint256 commitment, uint256 threshold) internal view {
+        uint256[4] memory pubInputs;
+        pubInputs[0] = policyId;
+        pubInputs[1] = version;
+        pubInputs[2] = commitment;
+        pubInputs[3] = threshold;
+
+        require(zkVerifier.verifyProof(proof, pubInputs), "PolicyRouter: zk proof invalid");
     }
 }
